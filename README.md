@@ -4,7 +4,7 @@ This repository contains the code and data for reproducing the analysis presente
 
 ## Overview
 
-This research investigates microwave emission from snow-covered Arctic sea ice at L-band frequencies (1.4 GHz), comparing coherent and incoherent radiative transfer models to explain observed brightness temperatures. The code implements both modeling approaches and includes optimization routines to retrieve geophysical parameters from brightness temperature observations.
+This research investigates microwave emission from snow-covered Arctic sea ice at L-band frequencies (1.4 GHz), comparing coherent and incoherent radiative transfer models to explain observed brightness temperatures. The code implements both modeling approaches and the optimization that, for each measurement, adjusts the geophysical state within its prior uncertainties to reproduce the observed brightness temperatures.
 
 ## Repository Structure
 
@@ -19,9 +19,10 @@ This research investigates microwave emission from snow-covered Arctic sea ice a
 ├── coh-model_optimization.jl     # Parameter optimization (coherent)
 ├── inc-model_optimization.jl     # Parameter optimization (incoherent)
 ├── fixed-alpha_optimization.jl   # Optimization with the axis ratio fixed (both models)
-├── paper_figures.jl              # Figures of the article and supplement
+├── paper_figures.jl              # Figures of the article (Figs. 3-9 and B1)
 ├── coherence_damping.jl          # Damping of the coherent oscillations with snow depth
 ├── Project.toml, Manifest.toml   # Julia environment (pinned package versions)
+├── LICENSE                       # MIT licence
 ├── opt_coh/                      # Optimization results, coherent model
 ├── opt_inc/                      # Optimization results, incoherent model
 └── opt_fixed_alpha/              # Optimization results with the axis ratio fixed
@@ -31,14 +32,17 @@ This research investigates microwave emission from snow-covered Arctic sea ice a
 
 ### 1. Permittivity Models (`permittivity_models.jl`)
 
-Implements dielectric permittivity models for sea ice constituents:
+Implements dielectric permittivity models for snow, seawater and sea ice. The paper uses `epsilon_snow`, `epsilon_water`, and the sea ice option `"mix"` (`e_eff_mix` in `ellipsoids_perm.jl`, below). The other sea ice options are kept in the code but are **not used** in the paper.
 
-- **`epsilon_Vant_ice(S, T)`**: Pure ice permittivity following Vant (1978)
-- **`epsilon_snow(freq, rho_snow, T)`**: Snow permittivity as function of density and temperature
-- **`epsilon_water(freq, T, S)`**: Seawater permittivity (Stogryn & Desargant, 1985)
-- **`epsilon_rn_ice(freq, S, T)`**: Sea ice permittivity with random needle brine inclusions (Shokr, 1998)
-- **`epsilon_sp_ice(freq, S, T)`**: Sea ice permittivity with spherical brine inclusions
-- **`pvs_mixing(mixing_ratio, freq, S, T)`**: Mixing of random needles and spheres
+Used in the paper:
+- **`epsilon_snow(freq, rho_snow, T)`**: Snow permittivity; real part from Mätzler (1996), imaginary part from Tiuri et al. (1984)
+- **`epsilon_water(freq, T, S)`**: Seawater permittivity (Klein & Swift, 1977)
+
+Not used in the paper:
+- **`epsilon_Vant_ice(S, T)`**: Sea ice permittivity following Vant (1978) (option `"vant"`)
+- **`epsilon_rn_ice(freq, S, T)`**: Sea ice permittivity with random needle brine inclusions (option `"rn"`)
+- **`epsilon_sp_ice(freq, S, T)`**: Sea ice permittivity with spherical brine inclusions (option `"sp"`)
+- **`pvs_mixing(mixing_ratio, freq, S, T)`**: Mixing of random needles and spheres (option `"pvs"`)
 
 **Key Parameters:**
 - `freq`: Frequency (Hz)
@@ -52,9 +56,11 @@ Implements effective medium theory for sea ice with ellipsoidal brine inclusions
 
 - **`depolarization_factor(aspect_ratio, c)`**: Calculates depolarization factors for ellipsoids
 - **`e_eff_mix(axis_ratio, c, v, S, T)`**: Computes effective permittivity using:
-  - Maxwell-Garnet formulation (v=0)
-  - Coherent potential formulation (v=1)
-  - Polder-van Santen formulation (v=2)
+  - Maxwell-Garnett formulation (v=0) — **used in the paper**
+  - Coherent potential formulation (v=1) — not used
+  - Polder-van Santen formulation (v=2) — not used
+
+In the configuration used in the paper (option `"mix"`, v = 0), brine inclusions are randomly oriented spheroids of axis ratio α in a pure ice host. The brine permittivity follows Stogryn & Desargant (1985) and the pure ice permittivity follows Mätzler (2006), with ε' = 3.1884 + 9.1×10⁻⁴ T.
 
 **Key Features:**
 - Iterative solution for effective medium permittivity
@@ -84,7 +90,7 @@ Implements the Wilheit (1978) coherent plane-stratified dielectric model:
 - `dice`: Ice layer thickness(es) (m)
 - `tice`: Ice temperature(s) (°C)
 - `sice`: Ice salinity(ies)
-- `ice_permittivity`: Permittivity model ("vant", "rn", "sp", "pvs", "mix")
+- `ice_permittivity`: Permittivity model ("vant", "rn", "sp", "pvs", "mix"; the paper uses "mix")
 - `mixing_ratio`: Fraction of random needle inclusions (for "pvs")
 - `axis_ratio`: Brine ellipsoid axis ratio (for "mix")
 
@@ -104,7 +110,18 @@ Implements an incoherent emission model following MEMLS approach:
 
 ## Optimization Routines
 
-Both `coh-model_optimization.jl` and `inc-model_optimization.jl` implement Nelder-Mead optimization (Optim.jl default options, starting from the prior) to retrieve geophysical parameters from observed brightness temperatures.
+Both `coh-model_optimization.jl` and `inc-model_optimization.jl` adjust, for each measurement, the geophysical state within its prior uncertainties so that the forward model reproduces the observed brightness temperatures.
+
+### Priors
+
+The priors and their uncertainties are hard-coded in the `minimization()` function of each optimization script (identical in both, and repeated in `fixed-alpha_optimization.jl` and `paper_figures.jl`); they are listed in Table A1 of the paper. The snow depth and ice thickness priors are the in situ values in `chars_data_filtered.csv`. That file has no snow density column, so the density priors exist only in the scripts.
+
+### Optimization Settings
+
+- Nelder–Mead (Optim.jl 1.13.3) with Optim's default options: affine initial simplex around the starting point, at most 1000 iterations, convergence tolerance `g_abstol` = 10⁻⁸
+- Unconstrained (no bounds on any parameter); for example, a snow-free measurement can end at a snow depth of about −1×10⁻⁶ m
+- The optimization starts at the prior
+- Antenna-pattern integration: TBs are computed at 1000 incidence angles evenly spaced from −89.99° to 89.99° and weighted by a Gaussian in incidence angle centred at 40° (σ_H = 15.29°, σ_V = 14.87°) times the angle step. The weights are not renormalised: the part of the Gaussian beyond ±90° is dropped, so they sum to 0.9995 (H) and 0.9996 (V). Negative angles are included; both models are symmetric in incidence angle, so these act as contributions at |θ| and carry 0.4% of the weight
 
 ### Cost Function
 
@@ -116,12 +133,12 @@ Cost = Σ[(TB_modeled - TB_observed)²/σ_TB²] + Σ[(param - prior)²/σ_param�
 
 Where:
 - Brightness temperature uncertainty: σ_TB = 5 K
-- Prior constraints on all retrieved parameters (snow depth, density, ice thickness, etc.); the axis-ratio term is evaluated in log10
+- Prior terms for all parameters of the state (snow depth, density, ice thickness, etc.); the axis-ratio term is evaluated in log10
 - Both forward models are integrated over the ARIEL antenna pattern (Gaussian in incidence angle centred at 40°, σ_H = 15.29°, σ_V = 14.87°), so the two optimizations differ only in the treatment of phase
 
 ### Optimization Variables
 
-Retrieved parameters (6 per measurement):
+State adjusted in the optimization (6 parameters per measurement):
 1. `dsnow`: Snow depth (m)
 2. `rho_snow`: Snow density (kg/m³)
 3. `dice`: Ice thickness (m)
@@ -135,7 +152,7 @@ Data from four sites with different environmental conditions: CLO, MID-1, MID-2,
 
 ### Axis ratio fixed (`fixed-alpha_optimization.jl`)
 
-Sensitivity test in which the axis ratio is fixed at its prior value (α = 5) for both models and removed from the state vector ([dsnow, rho_snow, dice, tice, sice]); the cost has no axis-ratio term and all other settings are as above. Results are written to `./opt_fixed_alpha/opt_res_<site>_{coh,inc}.csv`, which also record the number of iterations and whether the optimization converged.
+Sensitivity test (Fig. B1 of the paper) in which the axis ratio is fixed at its prior value (α = 5) for both models and removed from the state vector ([dsnow, rho_snow, dice, tice, sice]); the cost has no axis-ratio term and all other settings are as above. Results are written to `./opt_fixed_alpha/opt_res_<site>_{coh,inc}.csv`, which also record the number of iterations and whether the optimization converged.
 
 ### Output
 
@@ -181,7 +198,7 @@ julia --project=. paper_figures.jl               # -> figures/
 julia --project=. coherence_damping.jl           # -> figures/ and console summary
 ```
 
-The optimizations are deterministic, so rerunning them reproduces the CSV files provided. `paper_figures.jl` writes Figs. 3 to 8, the PD comparison at the prior and optimal states, and Fig. S1 of the supplement.
+The optimizations are deterministic, so rerunning them reproduces the CSV files provided. `paper_figures.jl` writes Figs. 3 to 9 and Fig. B1 (appendix) of the paper.
 
 ## Changes Since the First Release
 
@@ -199,3 +216,7 @@ Julia 1.12.3. The package versions used for the results are pinned in `Project.t
 ```bash
 julia --project=. -e 'using Pkg; Pkg.instantiate()'
 ```
+
+## License
+
+The code is released under the MIT licence (see `LICENSE`).

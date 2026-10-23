@@ -4,7 +4,7 @@ using Plots
 include("coherent_model.jl")
 include("incoherent_model.jl")
 #----------------------------------------------------------------------------------------
-# Figures of the article and its supplement, from the optimization results in
+# Figures of the article (Figs. 3-9 and appendix Fig. B1), from the optimization results in
 # ./opt_coh, ./opt_inc and ./opt_fixed_alpha (run the three *_optimization.jl
 # scripts first). Both forward models are integrated over the ARIEL antenna
 # pattern; Fig. 3 also shows both at a single incidence angle of 40°.
@@ -14,11 +14,11 @@ include("incoherent_model.jl")
 #   fig04_geophysical_coh.png           Fig. 4   priors and optimal geophysical variables, coherent
 #   fig04_geophysical_inc.png           Fig. 4   same, incoherent
 #   fig05_tb_prior_optimal.png          Fig. 5   observed, prior-state and optimal TBs per measurement
-#   fig06_costs.png                     Fig. 6   minimized cost per measurement and vs optimal snow depth
-#   fig07_cost_histograms.png           Fig. 7   histograms of the minimized cost
-#   fig08_tb_vs_snow_depth_sites.png    Fig. 8   TB vs snow depth per site, observed and optimal
-#   pd_prior_optimal.png                         measured vs modeled PD at the prior and optimal states
-#   figS1_fixed_alpha.png               Fig. S1  observed vs simulated TB with α fixed at 5
+#   fig06_pd_prior_optimal.png          Fig. 6   measured vs modeled PD at the prior and optimal states
+#   fig07_costs.png                     Fig. 7   minimized cost per measurement and vs optimal snow depth
+#   fig08_cost_histograms.png           Fig. 8   histograms of the minimized cost
+#   fig09_tb_vs_snow_depth_sites.png    Fig. 9   TB vs snow depth per site, observed and optimal
+#   figB1_fixed_alpha.png               Fig. B1  observed vs simulated TB with α fixed at 5
 #----------------------------------------------------------------------------------------
 
 const OUT = joinpath(@__DIR__, "figures")
@@ -194,9 +194,9 @@ function fig05(data, opt_c, opt_i)
 end
 
 #----------------------------------------------------------------------------------------
-# Figs. 6 and 7
+# Figs. 7 and 8
 #----------------------------------------------------------------------------------------
-function fig06_07(opt_c, opt_i)
+function fig07_08(opt_c, opt_i)
     costs     = vcat([o[!, :cost] for o in opt_c]...)
     costs_inc = vcat([o[!, :cost] for o in opt_i]...)
     ylab_pos = 1.08 * maximum(vcat(costs, costs_inc))
@@ -218,7 +218,7 @@ function fig06_07(opt_c, opt_i)
     scatter!(vcat([o[!, :opt_dsnow] for o in opt_i]...), costs_inc, markersize = 4, marker = :circle, framestyle = :box,
              guidefontsize = 12, legendfontsize = 8, ytickfontsize = 9, xtickfontsize = 9,
              color = :green, label = "Incoherent model", subplot = 2)
-    savefig(joinpath(OUT, "fig06_costs.png"))
+    savefig(joinpath(OUT, "fig07_costs.png"))
 
     plot(layout = (1, 2), size = (1200, 300), dpi = 500,
          bottom_margin = 8Plots.mm, left_margin = 12Plots.mm, right_margin = 1.5Plots.mm, top_margin = 3Plots.mm)
@@ -229,13 +229,13 @@ function fig06_07(opt_c, opt_i)
         xlims!(x_min, x_max, subplot = sub)
         ylims!(0, 18, subplot = sub)
     end
-    savefig(joinpath(OUT, "fig07_cost_histograms.png"))
+    savefig(joinpath(OUT, "fig08_cost_histograms.png"))
 end
 
 #----------------------------------------------------------------------------------------
-# Fig. 8
+# Fig. 9
 #----------------------------------------------------------------------------------------
-function fig08(data, opt_c, opt_i)
+function fig09(data, opt_c, opt_i)
     dsnows = 0:0.001:0.2
     panels = []
     for (k, s) in enumerate(SITES)
@@ -271,13 +271,13 @@ function fig08(data, opt_c, opt_i)
     scatter!(p_legend, [], [], marker = :xcross, color = :blue, alpha = 0.5, markerstrokewidth = 1, label = "opt - TBH inc model")
     scatter!(p_legend, [], [], marker = :xcross, color = :red, alpha = 0.5, markerstrokewidth = 1, label = "opt - TBV inc model")
     l = @layout [a{0.1h}; grid(2, 2)]
-    savefig(plot(p_legend, panels..., layout = l, size = (1400, 950), dpi = 500), joinpath(OUT, "fig08_tb_vs_snow_depth_sites.png"))
+    savefig(plot(p_legend, panels..., layout = l, size = (1400, 950), dpi = 500), joinpath(OUT, "fig09_tb_vs_snow_depth_sites.png"))
 end
 
 #----------------------------------------------------------------------------------------
-# PD at the prior and optimal states
+# Fig. 6: PD at the prior and optimal states
 #----------------------------------------------------------------------------------------
-function fig_pd(th, tv, pr, opt_c, opt_i)
+function fig06(th, tv, pr, opt_c, opt_i)
     pd_meas = tv .- th
     site_of = vcat([fill(k, length(s.rho)) for (k, s) in enumerate(SITES)]...)
     col(o, c) = vcat([df[!, c] for df in o]...)
@@ -315,13 +315,13 @@ function fig_pd(th, tv, pr, opt_c, opt_i)
         xlabel!(p, "Measured PD (K)", subplot = sub); ylabel!(p, "Modelled PD (K)", subplot = sub)
         title!(p, ttl, titlefontsize = 12, subplot = sub)
     end
-    savefig(p, joinpath(OUT, "pd_prior_optimal.png"))
+    savefig(p, joinpath(OUT, "fig06_pd_prior_optimal.png"))
 end
 
 #----------------------------------------------------------------------------------------
-# Fig. S1
+# Fig. B1
 #----------------------------------------------------------------------------------------
-function fig_s1()
+function figB1()
     load(m) = [CSV.read(joinpath(@__DIR__, "opt_fixed_alpha", "opt_res_$(s.key)_$(m).csv"), DataFrame) for s in SITES]
     res = Dict("coh" => load("coh"), "inc" => load("inc"))
     all_tb = vcat([vcat(df.target_tbh, df.target_tbv, df.opt_tbh, df.opt_tbv) for m in ("coh", "inc") for df in res[m]]...)
@@ -351,7 +351,7 @@ function fig_s1()
             plot!(p, legend = :topleft, subplot = sub)
         end
     end
-    savefig(p, joinpath(OUT, "figS1_fixed_alpha.png"))
+    savefig(p, joinpath(OUT, "figB1_fixed_alpha.png"))
 end
 
 #----------------------------------------------------------------------------------------
@@ -364,10 +364,10 @@ function main()
     fig04(data, "opt_coh", "fig04_geophysical_coh.png")
     fig04(data, "opt_inc", "fig04_geophysical_inc.png"); println("Fig. 4 done")
     th, tv, pr = fig05(data, opt_c, opt_i);   println("Fig. 5 done")
-    fig06_07(opt_c, opt_i);                   println("Figs. 6-7 done")
-    fig08(data, opt_c, opt_i);                println("Fig. 8 done")
-    fig_pd(th, tv, pr, opt_c, opt_i);         println("PD figure done")
-    fig_s1();                                 println("Fig. S1 done")
+    fig06(th, tv, pr, opt_c, opt_i);          println("Fig. 6 done")
+    fig07_08(opt_c, opt_i);                   println("Figs. 7-8 done")
+    fig09(data, opt_c, opt_i);                println("Fig. 9 done")
+    figB1();                                  println("Fig. B1 done")
 end
 #----------------------------------------------------------------------------------------
 

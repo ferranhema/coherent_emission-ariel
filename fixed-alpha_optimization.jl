@@ -5,7 +5,7 @@ include("coherent_model.jl")
 include("incoherent_model.jl")
 #----------------------------------------------------------------------------------------
 # Sensitivity test: optimal estimation with the brine-inclusion axis ratio fixed at
-# its prior value (α = 5) for both models, i.e. not retrieved. Same priors, σ,
+# its prior value (α = 5) for both models, i.e. not adjusted in the optimization. Same priors, σ,
 # σ_TB = 5 K, first guess and Nelder-Mead settings as coh-model_optimization.jl and
 # inc-model_optimization.jl; the cost has no α term. Both forward models are
 # integrated over the ARIEL antenna pattern.

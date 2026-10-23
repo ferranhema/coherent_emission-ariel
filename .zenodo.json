@@ -1,0 +1,15 @@
+{
+  "upload_type": "software",
+  "license": "MIT",
+  "creators": [
+    {
+      "name": "Hernández-Macià, Ferran",
+      "affiliation": "Institut de Ciències del Mar",
+      "orcid": "0009-0009-9529-9095"
+    },
+    {
+      "name": "Huntemann, Marcus",
+      "orcid": "0000-0002-9110-001X"
+    }
+  ]
+}

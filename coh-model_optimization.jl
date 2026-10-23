@@ -44,13 +44,13 @@ end
 
 #----------------------------------------------------------------------------------------
 """
-    minimization(:DataFrame)
+    minimization(data::DataFrame)
 
 Main optimization routine for four sampling sites (clo, mid1, mid2, far).
 For each site and measurement, optimizes snow/ice parameters using Nelder-Mead.
 Outputs results to CSV files in ./opt_coh/ directory.
 """
-function minimization(:DataFrame)
+function minimization(data::DataFrame)
     # Filter data by sampling site
     clo = filter(row -> row[:temp] == -9.69, data)
     mid1 = filter(row -> row[:temp] == -7.37, data)

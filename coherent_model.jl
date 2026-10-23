@@ -157,6 +157,102 @@ function vpld(n, sn, ths, theta, xlam)
 	return real(sp)
 end
 #---------------------------------------------------------------------------!
+function wilheit_model(theta, dsnow, tsnow, rho_snow, dice, tice, sice, ice_permittivity, mixing_ratio, axis_ratio)
+	# Radiative Transfer in a Plane Stratified Dielectric, Wilheit 1978
+	sw = 33
+	tw = -1.8
+	freq = 1.4e9
+	theta = deg2rad(theta)
+	c = 3e8
+	wl = c / freq
+	n_snow = length(dsnow)
+	n_ice = length(dice)
+
+	epre_snow = []
+	epim_snow = []
+	for i in 1 : n_snow
+		epre_snow0, epim_snow0 = epsilon_snow(freq, rho_snow[i], tsnow[i])
+		push!(epre_snow, epre_snow0)
+		push!(epim_snow, epim_snow0)
+	end
+	epre_ice = []
+	epim_ice = []
+	for i in 1 : n_ice
+		if ice_permittivity == "vant"
+			epre_ice0, epim_ice0 = epsilon_Vant_ice(sice[i], tice[i])
+			push!(epre_ice, epre_ice0)
+			push!(epim_ice, epim_ice0)
+		end
+		if ice_permittivity == "rn"
+			epre_ice0, epim_ice0 = epsilon_rn_ice(freq, sice[i], tice[i])
+			push!(epre_ice, epre_ice0)
+			push!(epim_ice, epim_ice0)
+		end
+		if ice_permittivity == "sp"
+			epre_ice0, epim_ice0 = epsilon_sp_ice(freq, sice[i], tice[i])
+			push!(epre_ice, epre_ice0)
+			push!(epim_ice, epim_ice0)
+		end
+		if ice_permittivity == "pvs"
+			epre_ice0, epim_ice0 = pvs_mixing(mixing_ratio, freq, sice[i], tice[i])
+			push!(epre_ice, epre_ice0)
+			push!(epim_ice, epim_ice0)
+		end
+		if ice_permittivity == "mix" # The 2nd 0 corresponds to the formulation: 0 = Maxwell-Garnet ; 1 = Coherent potential ; 2 = Polder van Santen
+			epre_ice0, epim_ice0 = e_eff_mix(axis_ratio,0,0,sice[i],tice[i])
+			push!(epre_ice, epre_ice0)
+			push!(epim_ice, epim_ice0)
+		end
+	end
+	epre_water, epim_water = epsilon_water(freq, tw, sw)
+
+	sn = [sqrt(complex(1,0))]
+	for i in 1 : n_snow
+		push!(sn, sqrt(complex(epre_snow[i], epim_snow[i])))
+	end
+	for i in 1 : n_ice
+		push!(sn, sqrt(complex(epre_ice[i], epim_ice[i])))
+	end
+	push!(sn, sqrt(complex(epre_water, epim_water)))
+
+	layers = [1e50]
+	for i in 1 : n_snow
+		push!(layers, dsnow[i])
+	end
+	for i in 1 : n_ice
+		push!(layers, dice[i])
+	end
+	push!(layers, 1e50)
+
+	sp_h = hpld(n_snow + n_ice + 2, sn, layers, theta, wl)
+	sp_v = vpld(n_snow + n_ice + 2, sn, layers, theta, wl)
+
+	tbh = sp_h[1]
+	j = 2
+	for i in 1 : n_snow
+		tbh += sp_h[j] * (tsnow[i] + 273.15)
+		j += 1
+	end
+	for i in 1 : n_ice
+		tbh += sp_h[j] * (tice[i] + 273.15)
+		j += 1
+	end
+	tbh += last(sp_h) * (tw + 273.15)
+
+	tbv = sp_v[1]
+	j = 2
+	for i in 1 : n_snow
+		tbv += sp_v[j] * (tsnow[i] + 273.15)
+		j += 1
+	end
+	for i in 1 : n_ice
+		tbv += sp_v[j] * (tice[i] + 273.15)
+		j += 1
+	end
+	tbv += last(sp_v) * (tw + 273.15)
+	return tbh, tbv
+end
+#---------------------------------------------------------------------------!
 function antenna_pattern_integration(mu, sigma_h, sigma_v)
 	x = LinRange(-89.99, 89.99, 1000)
 	dx = x[2] - x[1]

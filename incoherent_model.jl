@@ -87,7 +87,7 @@ end
 #----------------------------------------------------------------------------------------
 function incoherent_model(theta, dsnow, tsnow, rho_snow, dice, tice, sice, ice_permittivity, mixing_ratio, axis_ratio)
     freq = 1.4
-    T = [tsnow + 273.15, tice + 273.15, -2 + 273.15]
+    T = [tsnow + 273.15, tice + 273.15, -1.8 + 273.15]
     epre_snow, epim_snow = epsilon_snow(freq*1e9, rho_snow, T[1]-273.15)
     epre_ice, epim_ice = e_eff_mix(axis_ratio,0,0,sice,T[2]-273.15)
 	epre_water, epim_water = epsilon_water(freq*1e9, T[3]-273.15, 33)
@@ -97,3 +97,52 @@ function incoherent_model(theta, dsnow, tsnow, rho_snow, dice, tice, sice, ice_p
     tbh, tbv = incoherent(da, n, deg2rad(theta), freq, T)
     return tbh, tbv
 end
+#----------------------------------------------------------------------------------------
+"""
+    antenna_pattern_integration(mu, sigma_h, sigma_v)
+
+Gaussian antenna-footprint weights over incidence angle, identical to the
+one used for the coherent (Wilheit) model in coherent_model.jl.
+Duplicated here (rather than relying on include order) so this file remains
+self-contained.
+"""
+function antenna_pattern_integration(mu, sigma_h, sigma_v)
+    x = LinRange(-89.99, 89.99, 1000)
+    dx = x[2] - x[1]
+    f_h = (1 ./ sqrt.(2 * π * sigma_h^2)) .* exp.(- (x .- mu).^2 ./ (2 * sigma_h^2))
+    f_v = (1 ./ sqrt.(2 * π * sigma_v^2)) .* exp.(- (x .- mu).^2 ./ (2 * sigma_v^2))
+    return dx * f_h, dx * f_v
+end
+#----------------------------------------------------------------------------------------
+"""
+    incoherent_model_integrated(theta, dsnow, tsnow, rho_snow, dice, tice, sice, ice_permittivity, mixing_ratio, axis_ratio)
+
+Same physical model as `incoherent_model`, but the brightness temperature is
+averaged over the antenna incidence-angle pattern (Gaussian, sigma_h = 15.29,
+sigma_v = 14.87), exactly as `wilheit_model_integrated` does for the coherent
+model. Permittivities do not depend on angle, so they are computed once.
+"""
+function incoherent_model_integrated(theta, dsnow, tsnow, rho_snow, dice, tice, sice, ice_permittivity, mixing_ratio, axis_ratio)
+    freq = 1.4
+    w_h, w_v = antenna_pattern_integration(theta, 15.29, 14.87)
+    thetav = range(-89.99, stop=89.99, length=1000)
+
+    T = [tsnow + 273.15, tice + 273.15, -1.8 + 273.15]
+    epre_snow, epim_snow = epsilon_snow(freq*1e9, rho_snow, T[1]-273.15)
+    epre_ice, epim_ice = e_eff_mix(axis_ratio,0,0,sice,T[2]-273.15)
+    epre_water, epim_water = epsilon_water(freq*1e9, T[3]-273.15, 33)
+    n = [sqrt(complex(1,0)), sqrt(complex(epre_snow, epim_snow)), sqrt(complex(epre_ice, epim_ice)), sqrt(complex(epre_water, epim_water))]
+    da = [dsnow, dice]
+
+    tbhs = Float64[]
+    tbvs = Float64[]
+    for theta0 in thetav
+        tbh0, tbv0 = incoherent(da, n, deg2rad(theta0), freq, T)
+        push!(tbhs, tbh0)
+        push!(tbvs, tbv0)
+    end
+    tbh = sum(tbhs .* w_h)
+    tbv = sum(tbvs .* w_v)
+    return tbh, tbv
+end
+#----------------------------------------------------------------------------------------

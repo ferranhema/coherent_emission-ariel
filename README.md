@@ -17,7 +17,14 @@ This research investigates microwave emission from snow-covered Arctic sea ice a
 ├── coherent_model.jl             # Coherent radiative transfer model
 ├── incoherent_model.jl           # Incoherent radiative transfer model
 ├── coh-model_optimization.jl     # Parameter optimization (coherent)
-└── inc-model_optimization.jl     # Parameter optimization (incoherent)
+├── inc-model_optimization.jl     # Parameter optimization (incoherent)
+├── fixed-alpha_optimization.jl   # Optimization with the axis ratio fixed (both models)
+├── paper_figures.jl              # Figures of the article and supplement
+├── coherence_damping.jl          # Damping of the coherent oscillations with snow depth
+├── Project.toml, Manifest.toml   # Julia environment (pinned package versions)
+├── opt_coh/                      # Optimization results, coherent model
+├── opt_inc/                      # Optimization results, incoherent model
+└── opt_fixed_alpha/              # Optimization results with the axis ratio fixed
 ```
 
 ## Models
@@ -60,6 +67,7 @@ Implements the Wilheit (1978) coherent plane-stratified dielectric model:
 
 - **`hpld(n, sn, ths, theta, xlam)`**: Horizontal polarization layer-decomposed absorption
 - **`vpld(n, sn, ths, theta, xlam)`**: Vertical polarization layer-decomposed absorption
+- **`wilheit_model(theta, ...)`**: Model at a single incidence angle (used only in Fig. 3)
 - **`wilheit_model_integrated(theta, ...)`**: Main model with antenna pattern integration
 
 **Model Features:**
@@ -86,7 +94,8 @@ Implements an incoherent emission model following MEMLS approach:
 
 - **`fresnel(n1, n2, θ)`**: Fresnel reflection coefficients
 - **`incoherent(da, N, θ, freq, T)`**: Incoherent emission with infinite reflections
-- **`incoherent_model(theta, ...)`**: Main incoherent model wrapper
+- **`incoherent_model(theta, ...)`**: Incoherent model at a single incidence angle (used only in Fig. 3)
+- **`incoherent_model_integrated(theta, ...)`**: Main incoherent model, integrated over the same antenna pattern as the coherent model
 
 **Key Differences from Coherent Model:**
 - Neglects phase information between layers
@@ -95,7 +104,7 @@ Implements an incoherent emission model following MEMLS approach:
 
 ## Optimization Routines
 
-Both `coh-model_optimization.jl` and `inc-model_optimization.jl` implement Nelder-Mead optimization to retrieve geophysical parameters from observed brightness temperatures.
+Both `coh-model_optimization.jl` and `inc-model_optimization.jl` implement Nelder-Mead optimization (Optim.jl default options, starting from the prior) to retrieve geophysical parameters from observed brightness temperatures.
 
 ### Cost Function
 
@@ -107,7 +116,8 @@ Cost = Σ[(TB_modeled - TB_observed)²/σ_TB²] + Σ[(param - prior)²/σ_param�
 
 Where:
 - Brightness temperature uncertainty: σ_TB = 5 K
-- Prior constraints on all retrieved parameters (snow depth, density, ice thickness, etc.)
+- Prior constraints on all retrieved parameters (snow depth, density, ice thickness, etc.); the axis-ratio term is evaluated in log10
+- Both forward models are integrated over the ARIEL antenna pattern (Gaussian in incidence angle centred at 40°, σ_H = 15.29°, σ_V = 14.87°), so the two optimizations differ only in the treatment of phase
 
 ### Optimization Variables
 
@@ -121,7 +131,12 @@ Retrieved parameters (6 per measurement):
 
 ### Sampling Sites
 
-Data from four sites with different environmental conditions: CLOSE, MID1, MID2, and FAR.
+Data from four sites with different environmental conditions: CLO, MID-1, MID-2, and FAR.
+
+### Axis ratio fixed (`fixed-alpha_optimization.jl`)
+
+Sensitivity test in which the axis ratio is fixed at its prior value (α = 5) for both models and removed from the state vector ([dsnow, rho_snow, dice, tice, sice]); the cost has no axis-ratio term and all other settings are as above. Results are written to `./opt_fixed_alpha/opt_res_<site>_{coh,inc}.csv`, which also record the number of iterations and whether the optimization converged.
+
 ### Output
 
 Optimization results are saved as CSV files in `./opt_coh/` and `./opt_inc/` directories:
@@ -155,20 +170,32 @@ Contains the in situ observations from Arctic sea ice measurements.
 
 **Total Observations:** 35 measurements across 4 sites
 
-## Requirements
-
-### Julia Packages
-
-```julia
-using LinearAlgebra
-using BandedMatrices
-using DataFrames
-using CSV
-using Optim
-```
-
-### Installation
+## Reproducing the Analysis
 
 ```bash
-julia -e 'using Pkg; Pkg.add(["BandedMatrices", "DataFrames", "CSV", "Optim"])'
+julia --project=. -e 'using Pkg; Pkg.instantiate()'
+julia --project=. coh-model_optimization.jl      # -> opt_coh/
+julia --project=. inc-model_optimization.jl      # -> opt_inc/
+julia --project=. fixed-alpha_optimization.jl    # -> opt_fixed_alpha/
+julia --project=. paper_figures.jl               # -> figures/
+julia --project=. coherence_damping.jl           # -> figures/ and console summary
+```
+
+The optimizations are deterministic, so rerunning them reproduces the CSV files provided. `paper_figures.jl` writes Figs. 3 to 8, the PD comparison at the prior and optimal states, and Fig. S1 of the supplement.
+
+## Changes Since the First Release
+
+October 2026, after the review:
+
+- **Snow permittivity**: the conversion of snow density to g cm⁻³ was commented out for densities above 400 kg m⁻³ (`epsilon_snow`), which made the imaginary part about 3 × 10⁵ times too large in that range. Fixed; all results were recomputed.
+- **Incoherent model**: integrated over the ARIEL antenna pattern in the optimization (`incoherent_model_integrated`), as the coherent model already was; previously it was evaluated at 40° only. Seawater temperature set to -1.8 °C, as in the coherent model (previously -2 °C).
+- **Optimization scripts**: the signature `minimization(:DataFrame)` is not valid Julia and prevented the scripts from running; corrected to `minimization(data::DataFrame)`.
+- **New**: optimization with the axis ratio fixed, scripts for the figures and for the damping analysis, and a pinned Julia environment.
+
+## Requirements
+
+Julia 1.12.3. The package versions used for the results are pinned in `Project.toml` and `Manifest.toml` (BandedMatrices 1.11.0, CSV 0.10.16, DataFrames 1.8.1, Optim 1.13.3, Plots 1.41.6); install them with
+
+```bash
+julia --project=. -e 'using Pkg; Pkg.instantiate()'
 ```

@@ -58,7 +58,7 @@ function epsilon_snow(freq, rho_snow, T)
         e_h = 1
         e_s = 3.215
         EpRe = (1 - v) * e_h + v * e_s
-        #rho_snow = rho_snow / 1e3 # Convert to Mg/m^3
+        rho_snow = rho_snow / 1e3 # Convert to Mg/m^3 (was commented out, making EpIm ~3e5 too large above 400 kg/m^3)
     end
     B1 = 0.0207
     b = 335

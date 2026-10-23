@@ -28,7 +28,7 @@ function objective_function(x, target_tbh, target_tbv, theta, tair, tsnow, ice_p
     sice = x[2*length(tsnow)+3*length(tsnow)+1:end]                   # Ice salinity (ppt)
     
     # Compute modeled brightness temperatures using incoherent model
-    tbh, tbv = incoherent_model(theta, dsnow[1], tsnow[1], rho_snow[1], dice[1], tice[1], sice[1], ice_permittivity, mixing_ratio, axis_ratio[1])
+    tbh, tbv = incoherent_model_integrated(theta, dsnow[1], tsnow[1], rho_snow[1], dice[1], tice[1], sice[1], ice_permittivity, mixing_ratio, axis_ratio[1])
     
     # Cost function: TB misfit + prior penalties
     sigma_tb = 5  # TB measurement uncertainty (K)
@@ -45,14 +45,15 @@ end
 
 #----------------------------------------------------------------------------------------
 """
-    minimization(:DataFrame)
+    minimization(data::DataFrame)
 
 Main optimization routine for four sampling sites (clo, mid1, mid2, far).
 For each site and measurement, optimizes snow/ice parameters using Nelder-Mead 
-with the incoherent emission model.
+with the incoherent emission model integrated over the ARIEL antenna pattern
+(as the coherent model in coh-model_optimization.jl).
 Outputs results to CSV files in ./opt_inc/ directory.
 """
-function minimization(:DataFrame)
+function minimization(data::DataFrame)
     # Filter data by sampling site
     clo = filter(row -> row[:temp] == -9.69, data)
     mid1 = filter(row -> row[:temp] == -7.37, data)
@@ -198,7 +199,7 @@ function minimization(:DataFrame)
             opt_axis_ratio = [opt_axis_ratio; result.minimizer[4]]
             opt_tice = [opt_tice; result.minimizer[5]]
             opt_sice = [opt_sice; result.minimizer[6]]
-            opt_tb = incoherent_model(theta, result.minimizer[1], tsnow[k][1], result.minimizer[2], 
+            opt_tb = incoherent_model_integrated(theta, result.minimizer[1], tsnow[k][1], result.minimizer[2], 
                      result.minimizer[3], result.minimizer[5], result.minimizer[6], ice_perm[k], mr[k], result.minimizer[4])
             opt_tbh = [opt_tbh; opt_tb[1]]
             opt_tbv = [opt_tbv; opt_tb[2]]

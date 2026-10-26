@@ -1,0 +1,52 @@
+
+# robustness_tests.jl, threads = 9, tests = baseline
+baseline coh: max |Δx| = 0.0e+00, max |Δcost| = 1.8e-15 (vs ./opt_coh)
+baseline inc: max |Δx| = 0.0e+00, max |Δcost| = 1.8e-15 (vs ./opt_inc)
+
+# robustness_tests.jl, threads = 9, tests = footprint, priors, annealing
+footprint σ_d = 0.01 m, coh: at the optimal states max |ΔTB| = 4.61 K, RMS ΔTB = 1.78 K; re-optimized total cost = 76.64 (reference 71.38)
+footprint σ_d = 0.01 m, inc: at the optimal states max |ΔTB| = 0.00 K, RMS ΔTB = 0.00 K; re-optimized total cost = 243.39 (reference 243.39)
+footprint σ_d = 0.02 m, coh: at the optimal states max |ΔTB| = 13.19 K, RMS ΔTB = 5.15 K; re-optimized total cost = 114.93 (reference 71.38)
+footprint σ_d = 0.02 m, inc: at the optimal states max |ΔTB| = 0.00 K, RMS ΔTB = 0.00 K; re-optimized total cost = 243.39 (reference 243.39)
+footprint σ_d = 0.01 m: coherent cost lower for 25 of 35; ΔBIC = 94.0
+footprint σ_d = 0.02 m: coherent cost lower for 23 of 35; ΔBIC = 55.7
+priors dsnow      -1σ, coh: total cost = 72.91 (reference 71.38); shift of optimal dsnow: median 0.58σ, max 3.14σ; largest shift of the other variables: median 0.26σ, max 1.17σ
+priors dsnow      -1σ, inc: total cost = 242.01 (reference 243.39); shift of optimal dsnow: median 1.00σ, max 1.00σ; largest shift of the other variables: median 0.00σ, max 1.28σ
+priors dsnow      -1σ: coherent cost lower for 23 of 35; ΔBIC = 96.3
+priors dsnow      +1σ, coh: total cost = 115.21 (reference 71.38); shift of optimal dsnow: median 0.60σ, max 5.78σ; largest shift of the other variables: median 0.30σ, max 3.25σ
+priors dsnow      +1σ, inc: total cost = 242.04 (reference 243.39); shift of optimal dsnow: median 1.00σ, max 1.01σ; largest shift of the other variables: median 0.00σ, max 1.28σ
+priors dsnow      +1σ: coherent cost lower for 23 of 35; ΔBIC = 54.0
+priors rho_snow   -1σ, coh: total cost = 73.18 (reference 71.38); shift of optimal rho_snow: median 0.85σ, max 1.81σ; largest shift of the other variables: median 0.26σ, max 1.16σ
+priors rho_snow   -1σ, inc: total cost = 253.18 (reference 243.39); shift of optimal rho_snow: median 0.80σ, max 1.72σ; largest shift of the other variables: median 0.04σ, max 1.29σ
+priors rho_snow   -1σ: coherent cost lower for 23 of 35; ΔBIC = 107.2
+priors rho_snow   +1σ, coh: total cost = 142.11 (reference 71.38); shift of optimal rho_snow: median 0.95σ, max 3.76σ; largest shift of the other variables: median 0.22σ, max 5.05σ
+priors rho_snow   +1σ, inc: total cost = 249.91 (reference 243.39); shift of optimal rho_snow: median 0.74σ, max 1.06σ; largest shift of the other variables: median 0.02σ, max 0.07σ
+priors rho_snow   +1σ: coherent cost lower for 20 of 35; ΔBIC = 35.0
+priors dice       -1σ, coh: total cost = 69.07 (reference 71.38); shift of optimal dice: median 1.00σ, max 1.14σ; largest shift of the other variables: median 0.06σ, max 0.59σ
+priors dice       -1σ, inc: total cost = 243.08 (reference 243.39); shift of optimal dice: median 1.00σ, max 1.03σ; largest shift of the other variables: median 0.02σ, max 1.30σ
+priors dice       -1σ: coherent cost lower for 25 of 35; ΔBIC = 101.2
+priors dice       +1σ, coh: total cost = 72.66 (reference 71.38); shift of optimal dice: median 1.02σ, max 1.16σ; largest shift of the other variables: median 0.06σ, max 0.59σ
+priors dice       +1σ, inc: total cost = 242.58 (reference 243.39); shift of optimal dice: median 1.00σ, max 1.01σ; largest shift of the other variables: median 0.02σ, max 0.09σ
+priors dice       +1σ: coherent cost lower for 24 of 35; ΔBIC = 97.1
+priors axis_ratio -1σ, coh: total cost = 71.38 (reference 71.38); shift of optimal axis_ratio: median 0.51σ, max 0.67σ; largest shift of the other variables: median 0.29σ, max 3.26σ
+priors axis_ratio -1σ, inc: total cost = 260.11 (reference 243.39); shift of optimal axis_ratio: median 0.44σ, max 0.71σ; largest shift of the other variables: median 0.24σ, max 1.45σ
+priors axis_ratio -1σ: coherent cost lower for 25 of 35; ΔBIC = 116.0
+priors axis_ratio +1σ, coh: total cost = 99.61 (reference 71.38); shift of optimal axis_ratio: median 0.84σ, max 2.18σ; largest shift of the other variables: median 0.27σ, max 1.47σ
+priors axis_ratio +1σ, inc: total cost = 255.77 (reference 243.39); shift of optimal axis_ratio: median 0.63σ, max 1.72σ; largest shift of the other variables: median 0.23σ, max 0.73σ
+priors axis_ratio +1σ: coherent cost lower for 23 of 35; ΔBIC = 83.4
+priors tice       -1σ, coh: total cost = 70.78 (reference 71.38); shift of optimal tice: median 0.92σ, max 1.01σ; largest shift of the other variables: median 0.21σ, max 0.77σ
+priors tice       -1σ, inc: total cost = 269.26 (reference 243.39); shift of optimal tice: median 0.81σ, max 0.99σ; largest shift of the other variables: median 0.17σ, max 0.45σ
+priors tice       -1σ: coherent cost lower for 25 of 35; ΔBIC = 125.7
+priors tice       +1σ, coh: total cost = 76.01 (reference 71.38); shift of optimal tice: median 0.92σ, max 1.36σ; largest shift of the other variables: median 0.22σ, max 1.40σ
+priors tice       +1σ, inc: total cost = 225.39 (reference 243.39); shift of optimal tice: median 0.83σ, max 2.28σ; largest shift of the other variables: median 0.17σ, max 0.51σ
+priors tice       +1σ: coherent cost lower for 25 of 35; ΔBIC = 76.6
+priors sice       -1σ, coh: total cost = 81.28 (reference 71.38); shift of optimal sice: median 0.88σ, max 1.10σ; largest shift of the other variables: median 0.29σ, max 3.96σ
+priors sice       -1σ, inc: total cost = 234.81 (reference 243.39); shift of optimal sice: median 0.85σ, max 0.97σ; largest shift of the other variables: median 0.25σ, max 1.38σ
+priors sice       -1σ: coherent cost lower for 23 of 35; ΔBIC = 80.7
+priors sice       +1σ, coh: total cost = 87.18 (reference 71.38); shift of optimal sice: median 0.95σ, max 1.54σ; largest shift of the other variables: median 0.21σ, max 1.30σ
+priors sice       +1σ, inc: total cost = 258.54 (reference 243.39); shift of optimal sice: median 0.91σ, max 1.24σ; largest shift of the other variables: median 0.21σ, max 0.43σ
+priors sice       +1σ: coherent cost lower for 25 of 35; ΔBIC = 98.6
+
+# robustness_tests.jl, threads = 9, tests = annealing
+annealing coh: total cost = 70.87 (Nelder-Mead 71.38); cost SA − NM: min -0.620, max 0.574; largest state difference: median 0.000σ, max 1.742σ
+annealing inc: total cost = 241.91 (Nelder-Mead 243.39); cost SA − NM: min -1.483, max -0.000; largest state difference: median 0.000σ, max 1.283σ

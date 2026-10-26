@@ -21,11 +21,13 @@ This research investigates microwave emission from snow-covered Arctic sea ice a
 ├── fixed-alpha_optimization.jl   # Optimization with the axis ratio fixed (both models)
 ├── paper_figures.jl              # Figures of the article (Figs. 3-9 and B1)
 ├── coherence_damping.jl          # Damping of the coherent oscillations with snow depth
+├── robustness_tests.jl           # Snow depth variability, prior shifts, simulated annealing
 ├── Project.toml, Manifest.toml   # Julia environment (pinned package versions)
 ├── LICENSE                       # MIT licence
 ├── opt_coh/                      # Optimization results, coherent model
 ├── opt_inc/                      # Optimization results, incoherent model
-└── opt_fixed_alpha/              # Optimization results with the axis ratio fixed
+├── opt_fixed_alpha/              # Optimization results with the axis ratio fixed
+└── robustness/                   # Results of robustness_tests.jl
 ```
 
 ## Models
@@ -154,6 +156,17 @@ Data from four sites with different environmental conditions: CLO, MID-1, MID-2,
 
 Sensitivity test (Fig. B1 of the paper) in which the axis ratio is fixed at its prior value (α = 5) for both models and removed from the state vector ([dsnow, rho_snow, dice, tice, sice]); the cost has no axis-ratio term and all other settings are as above. Results are written to `./opt_fixed_alpha/opt_res_<site>_{coh,inc}.csv`, which also record the number of iterations and whether the optimization converged.
 
+### Robustness tests (`robustness_tests.jl`)
+
+Tests of the optimization reported in the discussion of the paper. Both forward models are antenna-integrated, and the priors, σ values and cost function are those of the optimization scripts.
+
+- **baseline**: Nelder–Mead with the script's own cost function; reproduces `opt_coh/` and `opt_inc/` exactly (largest cost difference 1.8 × 10⁻¹⁵), which checks that the tests use the cost function of the paper.
+- **footprint**: snow depth varying within the footprint. TBs are averaged over a Gaussian distribution of snow depth (σ_d = 0.01 and 0.02 m, 15-point Gauss–Hermite quadrature, depths below 0 set to 0), evaluated at the optimal states and with the optimization repeated.
+- **priors**: each prior shifted by −1σ and +1σ, one variable at a time (snow depth not below 0, axis ratio divided or multiplied by 1.3), with the optimization repeated from the shifted prior.
+- **annealing**: optimization repeated with simulated annealing (Optim `SAMIN`, rt = 0.5, 20,000 cost evaluations, seed 1000 + measurement number) within x_a ± 5σ (axis ratio within 5 ×/÷ 1.3⁵), clipped to snow depth ≥ 0, snow density ≥ 100 kg m⁻³, ice salinity ≥ 0.5 and ice temperature ≤ −2 °C.
+
+Results are written to `./robustness/`: `footprint_snow_depth.csv`, `prior_shifts.csv`, `annealing.csv` (per measurement and model) and `summary.txt` (totals, number of measurements with the lower coherent cost, and ΔBIC = Δcost − 35 ln 8). The four tests take about 2 hours on 9 threads; the simulated annealing depends on the random number generator, so its results may differ with other Julia versions.
+
 ### Output
 
 Optimization results are saved as CSV files in `./opt_coh/` and `./opt_inc/` directories:
@@ -196,6 +209,7 @@ julia --project=. inc-model_optimization.jl      # -> opt_inc/
 julia --project=. fixed-alpha_optimization.jl    # -> opt_fixed_alpha/
 julia --project=. paper_figures.jl               # -> figures/
 julia --project=. coherence_damping.jl           # -> figures/ and console summary
+julia --project=. -t 9 robustness_tests.jl       # -> robustness/
 ```
 
 The optimizations are deterministic, so rerunning them reproduces the CSV files provided. `paper_figures.jl` writes Figs. 3 to 9 and Fig. B1 (appendix) of the paper.
@@ -208,6 +222,7 @@ October 2026, after the review:
 - **Incoherent model**: integrated over the ARIEL antenna pattern in the optimization (`incoherent_model_integrated`), as the coherent model already was; previously it was evaluated at 40° only. Seawater temperature set to -1.8 °C, as in the coherent model (previously -2 °C).
 - **Optimization scripts**: the signature `minimization(:DataFrame)` is not valid Julia and prevented the scripts from running; corrected to `minimization(data::DataFrame)`.
 - **New**: optimization with the axis ratio fixed, scripts for the figures and for the damping analysis, and a pinned Julia environment.
+- **New** (after v1.0.0): robustness tests of the optimization (`robustness_tests.jl`, results in `robustness/`).
 
 ## Requirements
 

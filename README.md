@@ -232,6 +232,14 @@ Julia 1.12.3. The package versions used for the results are pinned in `Project.t
 julia --project=. -e 'using Pkg; Pkg.instantiate()'
 ```
 
+## Citation
+
+The code is archived on Zenodo. To cite the version used in the article:
+
+Hernández-Macià, F. and Huntemann, M.: ferranhema/coherent_emission-ariel: v1.1.0, Zenodo [code], https://doi.org/10.5281/zenodo.23665110, 2026.
+
+The concept DOI https://doi.org/10.5281/zenodo.23597502 always resolves to the latest version.
+
 ## License
 
 The code is released under the MIT licence (see `LICENSE`).
